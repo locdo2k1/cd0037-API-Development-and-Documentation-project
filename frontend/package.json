@@ -8,8 +8,7 @@
     "jquery": "^3.4.1",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
-    "react-router-dom": "^5.0.0",
-    "react-scripts": "3.0.1"
+    "react-router-dom": "^5.0.0"
   },
   "scripts": {
     "start": "node node_modules/react-scripts/scripts/start.js",
@@ -31,5 +30,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "react-scripts": "^5.0.1",
+    "webpack": "^5.92.0"
   }
 }
