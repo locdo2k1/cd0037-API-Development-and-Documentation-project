@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
@@ -28,7 +28,7 @@ def create_app(test_config=None):
         response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
         return response
     
-    def paginate_question(request, selection):
+    def paginate(request, selection):
         page = request.args.get("page", 1, type=int)
         start = (page - 1) * QUESTIONS_PER_PAGE
         end = start + QUESTIONS_PER_PAGE
@@ -40,18 +40,15 @@ def create_app(test_config=None):
 
     @app.route("/categories")
     def get_all_categories():
-        try:
-            all_categories = Category.query.all()
-            categories_result = {str(category.id) : category.type for category in all_categories}
+        all_categories = paginate(request, Category.query.all())
+        categories_result = {str(category['id']) : category['type'] for category in all_categories}
 
-            if len(all_categories) == 0:
-                abort(404)
+        if len(all_categories) == 0:
+            abort(404)
 
-            return jsonify({
-                'categories': categories_result
-            })
-        except Exception  as e:
-            abort(422)
+        return jsonify({
+            'categories': categories_result
+        })
 
 
     """
@@ -71,7 +68,7 @@ def create_app(test_config=None):
         selection = Question.query.all()
         categories = Category.query.all()
         categories_result = {str(category.id) : category.type for category in categories}
-        current_questions = paginate_question(request, selection)
+        current_questions = paginate(request, selection)
         formatted_questions = []
 
         for question in current_questions:
@@ -112,7 +109,7 @@ def create_app(test_config=None):
 
             question.delete()
             selection = Question.query.order_by(Question.id).all()
-            current_questions = paginate_question(request, selection)
+            current_questions = paginate(request, selection)
 
             return jsonify(
                 {
@@ -161,7 +158,7 @@ def create_app(test_config=None):
                 selection = Question.query.order_by(Question.id).filter(
                     Question.question.ilike("%{}%".format(search))
                 )
-                current_questions = paginate_question(request, selection)
+                current_questions = paginate(request, selection)
 
                 return jsonify(
                     {
@@ -172,11 +169,11 @@ def create_app(test_config=None):
                 )
 
             else:
-                question = Question(question==question, answer==answer, category==category, difficulty=int(difficulty))
+                question = Question(question=question, answer=answer, category=category, difficulty=int(difficulty))
                 question.insert()
 
                 selection = Question.query.order_by(Question.id).all()
-                current_questions = paginate_question(request, selection)
+                current_questions = paginate(request, selection)
 
                 return jsonify(
                     {
@@ -199,21 +196,19 @@ def create_app(test_config=None):
     """
     @app.route("/categories/<int:category_id>/questions")
     def get_question_by_category(category_id):
-        try:
-            selection = Question.query.order_by(Question.id).filter(Question.category == str(category_id))
-            current_questions = paginate_question(request, selection)
+        selection = Question.query.order_by(Question.id).filter(Question.category == str(category_id))
+        current_questions = paginate(request, selection)
 
-            return jsonify(
-                {
-                    "success": True,
-                    "questions": current_questions,
-                    "total_questions": len(selection.all()),
-                }
-            )
+        if len(current_questions) == 0:
+            abort(404)
 
-        except Exception  as e:
-            abort(422)
-
+        return jsonify(
+            {
+                "success": True,
+                "questions": current_questions,
+                "total_questions": len(selection.all()),
+            }
+        )
     """
     @:
     Create a POST endpoint to get questions to play the quiz.
@@ -227,22 +222,23 @@ def create_app(test_config=None):
     """
     @app.route("/quizzes", methods=["POST"])
     def get_quizzes():
-        try:
-            body = request.get_json()
-            quiz_category = body.get("quiz_category", None)
-            previous_questions_id = body.get("previous_questions", None)
-            questions = Question.query.order_by(Question.id).filter(Question.category == str(quiz_category['id']),  
-            Question.id.notin_(previous_questions_id) if previous_questions_id else True).all()
-            random_question = random.choice(questions).format()
-            return jsonify(
-                {
-                    "success": True,
-                    "question": random_question
-                }
-            )
+        body = request.get_json()
+        quiz_category = body.get("quiz_category", None)
+        previous_questions_id = body.get("previous_questions", None)
+        questions = Question.query.order_by(Question.id).filter(Question.category == quiz_category,  
+        Question.id.notin_(previous_questions_id) if previous_questions_id else True).all()
 
-        except Exception  as e:
-          abort(422)
+        if len(questions) == 0:
+            abort(404)
+
+        random_question = random.choice(questions).format()
+        
+        return jsonify(
+            {
+                "success": True,
+                "question": random_question
+            })
+
     """
     @
     Create error handlers for all expected errors
