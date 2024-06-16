@@ -225,7 +225,7 @@ def create_app(test_config=None):
         body = request.get_json()
         quiz_category = body.get("quiz_category", None)
         previous_questions_id = body.get("previous_questions", None)
-        questions = Question.query.order_by(Question.id).filter(Question.category == quiz_category,  
+        questions = Question.query.order_by(Question.id).filter(Question.category == quiz_category["id"],  
         Question.id.notin_(previous_questions_id) if previous_questions_id else True).all()
 
         if len(questions) == 0:
@@ -266,6 +266,13 @@ def create_app(test_config=None):
     def not_found(error):
         return (
             jsonify({"success": False, "error": 405, "message": "method not allowed"}),
+            405,
+        )
+
+    @app.errorhandler(500)
+    def not_found(error):
+        return (
+            jsonify({"success": False, "error": 500, "message": "internal server error"}),
             405,
         )
 

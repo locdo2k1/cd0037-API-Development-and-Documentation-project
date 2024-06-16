@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 
 from flaskr import create_app
 from models import setup_db, Question, Category
+from dotenv import load_dotenv
+
 
 
 class TriviaTestCase(unittest.TestCase):
@@ -12,8 +14,13 @@ class TriviaTestCase(unittest.TestCase):
 
     def setUp(self):
         """Define test variables and initialize app."""
-        self.database_name = "trivia_test"
-        self.database_path = 'postgresql://postgres:admin123@localhost:5432/trivia-api'
+        load_dotenv()
+        database_name = os.getenv('DATABASE_NAME')
+        user_name = os.getenv('USER_NAME')
+        pass_word = os.getenv('PASSWORD')
+        database_path = 'postgresql://{}:{}@{}/{}'.format(user_name,pass_word,'localhost:5432', database_name)
+        self.database_name = database_name
+        self.database_path = database_path
         
         self.app = create_app({
             "SQLALCHEMY_DATABASE_URI": self.database_path
@@ -124,7 +131,10 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_get_quizzes(self):
         res = self.client().post("/quizzes",json={
-            "quiz_category": "2"
+            "quiz_category": {
+                            "type": "Geography",
+                            "id": "3"
+                            }
         })
         data = json.loads(res.data)
 
@@ -132,8 +142,11 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data["question"])
 
     def test_get_quizzes_without_result(self):
-        res = self.client().post("/quizzes", json={
-            "quiz_category": "1000"
+        res = self.client().post("/quizzes",json={
+            "quiz_category": {
+                            "type": "",
+                            "id": "1000"
+                            }
         })
         data = json.loads(res.data)
 
